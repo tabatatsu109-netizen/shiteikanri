@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>施設管理システム</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+  background: #f0f4f8; color: #1a202c; min-height: 100vh;
+}
+
+/* HEADER */
+#header {
+  display: none; position: fixed; top: 0; left: 0; right: 0;
+  height: 64px; background: #1a3a5c; align-items: center;
+  padding: 0 16px; gap: 16px; z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+#header.show { display: flex; }
+#back-btn {
+  background: rgba(255,255,255,0.15); border: none; border-radius: 10px;
+  color: white; font-size: 18px; font-family: inherit;
+  padding: 10px 18px; cursor: pointer; font-weight: bold;
+}
+#header-title { color: white; font-size: 22px; font-weight: bold; }
+
+/* SCREENS */
+.screen { display: none; padding-bottom: 60px; max-width: 960px; margin: 0 auto; }
+.screen.active { display: block; }
+#screen-home { padding: 0; }
+.sub-screen { padding-top: 80px; }
+
+/* HOME */
+.home-wrap { padding: 24px 16px; }
+.home-logo {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+  padding: 20px 24px; background: #1a3a5c; border-radius: 16px; color: white;
+}
+.home-logo-icon { font-size: 48px; }
+.home-title { font-size: 26px; font-weight: bold; line-height: 1.2; }
+.home-subtitle { font-size: 16px; opacity: 0.8; margin-top: 4px; }
+.summary-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+.sum-card {
+  flex: 1; min-width: 120px; background: white; border-radius: 12px;
+  padding: 14px 16px; border-left: 5px solid; box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+.sum-value { font-size: 22px; font-weight: bold; }
+.sum-label { font-size: 13px; color: #666; margin-top: 4px; }
+.nav-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.nav-btn {
+  border: none; border-radius: 16px; padding: 24px 16px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18); min-height: 130px; transition: transform 0.1s;
+}
+.nav-btn:active { transform: scale(0.97); }
+.nav-icon { font-size: 40px; }
+.nav-label { color: white; font-size: 22px; font-weight: bold; font-family: inherit; }
+.nav-sub { color: rgba(255,255,255,0.8); font-size: 14px; font-family: inherit; }
+
+/* FORMS */
+.form-wrap { padding: 20px 16px; }
+.form-row { margin-bottom: 20px; }
+.form-label {
+  display: flex; align-items: center; gap: 8px; font-size: 18px;
+  font-weight: bold; color: #334155; margin-bottom: 8px;
+}
+.required {
+  background: #dc2626; color: white; font-size: 13px;
+  border-radius: 4px; padding: 2px 8px; font-weight: normal;
+}
+.big-input, .big-select, .big-textarea {
+  width: 100%; padding: 16px 18px; font-size: 20px; border-radius: 12px;
+  border: 2px solid #cbd5e1; font-family: inherit; background: white;
+  outline: none; color: #1a202c; -webkit-appearance: none; appearance: none;
+}
+.big-textarea { resize: vertical; font-size: 18px; }
+.input-wrap { position: relative; display: flex; align-items: center; }
+.input-wrap .big-input { flex: 1; }
+.input-suffix { position: absolute; right: 16px; font-size: 18px; color: #64748b; pointer-events: none; }
+.time-row { display: flex; gap: 8px; align-items: center; }
+.time-row .big-input { flex: 1; }
+.time-sep { font-size: 20px; }
+.radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+.radio-btn {
+  padding: 12px 20px; font-size: 17px; border-radius: 12px;
+  border: 2px solid #cbd5e1; background: white; cursor: pointer;
+  font-family: inherit; color: #334155; transition: all 0.15s;
+}
+.radio-btn.active { background: #1a6fbf; color: white; border-color: #1a6fbf; font-weight: bold; }
+.save-btn {
+  width: 100%; padding: 20px; font-size: 22px; font-weight: bold;
+  font-family: inherit; background: #1a7a4a; color: white; border: none;
+  border-radius: 16px; cursor: pointer; box-shadow: 0 4px 16px rgba(26,122,74,0.35);
+  letter-spacing: 0.05em; margin-top: 8px;
+}
+.error-msg { color: #dc2626; font-size: 16px; margin-top: 4px; }
+
+/* SECTION CARD */
+.section-card {
+  background: white; border-radius: 16px; padding: 20px;
+  margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+.section-card-title {
+  font-size: 18px; font-weight: bold; color: #1a3a5c;
+  margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ===== 団体選択 ===== */
+.group-search-wrap { position: relative; margin-bottom: 12px; }
+.group-search-input {
+  width: 100%; padding: 14px 18px; font-size: 18px; border-radius: 12px;
+  border: 2px solid #cbd5e1; font-family: inherit; outline: none;
+}
+.group-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+.group-btn {
+  width: 100%; text-align: left; padding: 14px 16px; border-radius: 12px;
+  border: 2px solid #e2e8f0; background: white; cursor: pointer; font-family: inherit;
+  transition: all 0.15s; display: flex; justify-content: space-between; align-items: center;
+}
+.group-btn:active { background: #eff6ff; border-color: #1a6fbf; }
+.group-btn.selected { background: #eff6ff; border-color: #1a6fbf; }
+.group-btn-name { font-size: 18px; font-weight: bold; color: #1a3a5c; }
+.group-btn-sub { font-size: 14px; color: #64748b; margin-top: 2px; }
+.group-btn-recent { font-size: 12px; color: #1a7a4a; background: #f0fdf4; padding: 2px 8px; border-radius: 6px; }
+.group-btn-left { flex: 1; }
+.other-input-wrap { margin-top: 12px; display: none; }
+.other-input-wrap.show { display: block; }
+
+/* ===== 料金計算 ===== */
+.fee-total-display {
+  background: #1a3a5c; color: white; border-radius: 16px;
+  padding: 20px 24px; margin-bottom: 20px; text-align: center;
+}
+.fee-total-label { font-size: 16px; opacity: 0.8; margin-bottom: 4px; }
+.fee-total-value { font-size: 40px; font-weight: bold; letter-spacing: 0.05em; }
+
+/* ===== 明細 ===== */
+.meisai-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
+.meisai-card {
+  background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 14px; padding: 16px;
+  position: relative;
+}
+.meisai-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+}
+.meisai-num { font-size: 16px; font-weight: bold; color: #1a3a5c; }
+.meisai-subtotal { font-size: 18px; font-weight: bold; color: #1a6fbf; }
+.meisai-del {
+  background: #fee2e2; border: none; border-radius: 8px; color: #dc2626;
+  font-size: 16px; padding: 6px 14px; cursor: pointer; font-family: inherit;
+}
+.meisai-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.meisai-field label { font-size: 15px; font-weight: bold; color: #475569; margin-bottom: 6px; display: block; }
+.meisai-field select, .meisai-field input {
+  width: 100%; padding: 12px 14px; font-size: 16px; border-radius: 10px;
+  border: 2px solid #cbd5e1; font-family: inherit; background: white;
+  outline: none; -webkit-appearance: none; appearance: none;
+}
+.add-meisai-btn {
+  width: 100%; padding: 16px; font-size: 20px; font-weight: bold;
+  font-family: inherit; background: white; color: #1a6fbf;
+  border: 2px dashed #1a6fbf; border-radius: 14px; cursor: pointer;
+  transition: all 0.15s;
+}
+.add-meisai-btn:active { background: #eff6ff; }
+
+/* ===== 料金ゾーン ===== */
+.fee-zone { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fee-toggle-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.fee-toggle {
+  flex: 1; min-width: 80px; padding: 12px 8px; font-size: 16px; font-family: inherit;
+  border-radius: 10px; border: 2px solid #cbd5e1; background: white;
+  cursor: pointer; text-align: center; transition: all 0.15s;
+}
+.fee-toggle.active { background: #1a6fbf; color: white; border-color: #1a6fbf; font-weight: bold; }
+.menjyo-wrap { display: flex; gap: 8px; flex-wrap: wrap; }
+.menjyo-btn {
+  flex: 1; padding: 12px 8px; font-size: 16px; font-family: inherit;
+  border-radius: 10px; border: 2px solid #cbd5e1; background: white;
+  cursor: pointer; text-align: center; transition: all 0.15s;
+}
+.menjyo-btn.active { background: #7b3fa0; color: white; border-color: #7b3fa0; font-weight: bold; }
+.menjyo-input-wrap { margin-top: 8px; display: none; }
+.menjyo-input-wrap.show { display: block; }
+
+/* TABLES */
+.report-table {
+  width: 100%; border-collapse: collapse; background: white;
+  border-radius: 12px; overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07); font-size: 16px; margin-bottom: 24px;
+}
+.report-table th {
+  background: #1a3a5c; color: white; padding: 12px 14px; text-align: left; font-size: 16px; font-weight: bold;
+}
+.report-table td { padding: 12px 14px; border-bottom: 1px solid #e2e8f0; font-size: 16px; }
+.report-table tr:last-child td { border-bottom: none; }
+.mini-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 15px; }
+.mini-table th { background: #1a3a5c; color: white; padding: 8px 10px; text-align: left; }
+.mini-table td { padding: 8px 10px; border-bottom: 1px solid #dde; }
+.section-title {
+  font-size: 18px; font-weight: bold; color: #1a3a5c;
+  border-bottom: 3px solid #1a3a5c; padding-bottom: 8px; margin-bottom: 16px; margin-top: 8px;
+}
+
+/* MONTHLY */
+.month-summary-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 24px; }
+.month-card {
+  background: white; border-radius: 12px; padding: 16px; border-left: 5px solid;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07); display: flex; align-items: center; gap: 14px;
+}
+.month-card-icon { font-size: 26px; }
+.month-card-value { font-size: 20px; font-weight: bold; }
+.month-card-label { font-size: 13px; color: #666; margin-top: 2px; }
+.cash-summary {
+  display: flex; gap: 24px; background: white; padding: 16px 20px;
+  border-radius: 12px; margin-bottom: 20px; font-size: 17px; flex-wrap: wrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+.income-text { color: #1a7a4a; font-weight: bold; }
+.expense-text { color: #c0392b; font-weight: bold; }
+.balance-text { color: #1a6fbf; font-weight: bold; }
+.row-expense { background: #fff5f5; }
+
+/* EXPORT */
+.export-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; }
+.export-btn {
+  background: white; border: 2px solid #e2e8f0; border-radius: 14px;
+  padding: 20px 16px; cursor: pointer; display: flex; flex-direction: column;
+  align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: all 0.15s;
+}
+.export-btn:active { transform: scale(0.97); background: #f8fafc; }
+.export-btn-icon { font-size: 32px; }
+.export-btn-label { font-size: 17px; font-weight: bold; color: #1a3a5c; text-align: center; font-family: inherit; }
+.export-btn-desc { font-size: 13px; color: #64748b; text-align: center; font-family: inherit; }
+.export-note {
+  margin-top: 24px; padding: 16px 20px; background: #fef9c3;
+  border-radius: 12px; font-size: 15px; color: #713f12; line-height: 2; border: 1px solid #fde68a;
+}
+
+/* MASTER */
+.master-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.master-item {
+  background: white; border: 2px solid #e2e8f0; border-radius: 12px;
+  padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
+}
+.master-item-info { flex: 1; }
+.master-item-name { font-size: 18px; font-weight: bold; color: #1a3a5c; }
+.master-item-sub { font-size: 14px; color: #64748b; margin-top: 2px; }
+.master-del-btn {
+  background: #fee2e2; border: none; border-radius: 8px; color: #dc2626;
+  font-size: 15px; padding: 8px 14px; cursor: pointer; font-family: inherit;
+}
+.add-master-btn {
+  width: 100%; padding: 16px; font-size: 18px; font-weight: bold;
+  font-family: inherit; background: #1a6fbf; color: white;
+  border: none; border-radius: 14px; cursor: pointer;
+}
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-start;
+  justify-content: center; overflow-y: auto; padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: white; border-radius: 20px; padding: 24px; width: 100%;
+  max-width: 600px; margin: auto;
+}
+.modal-title { font-size: 22px; font-weight: bold; color: #1a3a5c; margin-bottom: 20px; }
+.modal-btns { display: flex; gap: 12px; margin-top: 20px; }
+.modal-cancel {
+  flex: 1; padding: 16px; font-size: 18px; font-family: inherit;
+  background: #f1f5f9; color: #475569; border: none; border-radius: 12px; cursor: pointer;
+}
+.modal-save {
+  flex: 2; padding: 16px; font-size: 18px; font-family: inherit; font-weight: bold;
+  background: #1a7a4a; color: white; border: none; border-radius: 12px; cursor: pointer;
+}
+
+/* AUTO BLOCK */
+.auto-block {
+  background: #eff6ff; border: 2px solid #bfdbfe; border-radius: 14px; padding: 18px 20px; margin-bottom: 24px;
+}
+.auto-block-title { font-size: 17px; font-weight: bold; color: #1d4ed8; margin-bottom: 10px; }
+.auto-text { font-size: 18px; line-height: 1.8; color: #1e3a5f; }
+
+/* TOAST */
+#toast {
+  display: none; position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+  color: white; padding: 16px 32px; border-radius: 14px; font-size: 18px; font-weight: bold;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 999; white-space: nowrap;
+}
+.date-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.date-row .form-row { flex: 1; min-width: 180px; }
+
+/* TAB */
+.tab-bar { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 3px solid #1a3a5c; }
+.tab-btn {
+  flex: 1; padding: 14px 8px; font-size: 16px; font-family: inherit; font-weight: bold;
+  background: none; border: none; color: #64748b; cursor: pointer; border-radius: 8px 8px 0 0;
+}
+.tab-btn.active { background: #1a3a5c; color: white; }
+
+.hint { font-size: 14px; color: #64748b; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <button id="back-btn" onclick="goHome()">◀ ホーム</button>
+  <span id="header-title"></span>
+</div>
+<div id="toast"></div>
+
+<!-- =============================== HOME =============================== -->
+<div id="screen-home" class="screen active">
+  <div class="home-wrap">
+    <div class="home-logo">
+      <div class="home-logo-icon">🏟️</div>
+      <div>
+        <div class="home-title">施設管理システム</div>
+        <div class="home-subtitle" id="today-date"></div>
+      </div>
+    </div>
+    <div class="summary-bar">
+      <div class="sum-card" style="border-color:#1a6fbf">
+        <div class="sum-value" style="color:#1a6fbf" id="sum-count">0件</div>
+        <div class="sum-label">本日の受付件数</div>
+      </div>
+      <div class="sum-card" style="border-color:#1a7a4a">
+        <div class="sum-value" style="color:#1a7a4a" id="sum-people">0名</div>
+        <div class="sum-label">本日の利用人数</div>
+      </div>
+      <div class="sum-card" style="border-color:#b45309">
+        <div class="sum-value" style="color:#b45309" id="sum-income">0円</div>
+        <div class="sum-label">本日の収入</div>
+      </div>
+    </div>
+    <div class="nav-grid">
+      <button class="nav-btn" style="background:#1a6fbf" onclick="goScreen('receipt','利用受付')">
+        <span class="nav-icon">📋</span><span class="nav-label">利用受付</span><span class="nav-sub">新しい利用を登録</span>
+      </button>
+      <button class="nav-btn" style="background:#7b3fa0" onclick="goScreen('expense','支出入力')">
+        <span class="nav-icon">💴</span><span class="nav-label">支出入力</span><span class="nav-sub">支出を記録する</span>
+      </button>
+      <button class="nav-btn" style="background:#1a7a4a" onclick="goScreen('daily','日報確認・入力')">
+        <span class="nav-icon">📝</span><span class="nav-label">日報確認</span><span class="nav-sub">今日の日報を確認</span>
+      </button>
+      <button class="nav-btn" style="background:#b45309" onclick="goScreen('monthly','月報確認')">
+        <span class="nav-icon">📊</span><span class="nav-label">月報確認</span><span class="nav-sub">月次集計を確認</span>
+      </button>
+      <button class="nav-btn" style="background:#0f766e" onclick="goScreen('cashbook','現金出納帳')">
+        <span class="nav-icon">🗂️</span><span class="nav-label">現金出納帳</span><span class="nav-sub">収支を確認する</span>
+      </button>
+      <button class="nav-btn" style="background:#64748b" onclick="goScreen('export','書類出力')">
+        <span class="nav-icon">🖨️</span><span class="nav-label">書類出力</span><span class="nav-sub">PDF・Excel出力</span>
+      </button>
+      <button class="nav-btn" style="background:#0369a1; grid-column: span 2;" onclick="goScreen('master','マスタ管理')">
+        <span class="nav-icon">⚙️</span><span class="nav-label">マスタ管理</span><span class="nav-sub">団体・料金マスタの登録・編集</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- =============================== 利用受付 =============================== -->
+<div id="screen-receipt" class="screen sub-screen">
+  <div class="form-wrap">
+
+    <!-- 日付・時間 -->
+    <div class="section-card">
+      <div class="section-card-title">📅 基本情報</div>
+      <div class="form-row">
+        <div class="form-label">利用日 <span class="required">必須</span></div>
+        <input class="big-input" type="date" id="r-date">
+      </div>
+      <div class="form-row">
+        <div class="form-label">利用時間</div>
+        <div class="time-row">
+          <input class="big-input" type="time" id="r-start">
+          <span class="time-sep">〜</span>
+          <input class="big-input" type="time" id="r-end">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-label">利用人数 <span class="required">必須</span></div>
+        <input class="big-input" type="number" id="r-people" placeholder="例：20">
+        <div class="error-msg" id="r-people-err" style="display:none">⚠ 必須項目です</div>
+      </div>
+    </div>
+
+    <!-- 団体選択 -->
+    <div class="section-card">
+      <div class="section-card-title">👥 利用団体の選択</div>
+      <div class="group-search-wrap">
+        <input class="group-search-input" type="text" id="group-search" placeholder="🔍 団体名を検索..." oninput="filterGroups()">
+      </div>
+      <div class="group-list" id="group-list"></div>
+      <div class="other-input-wrap" id="other-input-wrap">
+        <div class="form-label" style="margin-top:12px">団体名（手入力）</div>
+        <input class="big-input" type="text" id="r-group-other" placeholder="団体名を入力してください">
+        <div class="form-label" style="margin-top:12px">代表者名</div>
+        <input class="big-input" type="text" id="r-rep-other" placeholder="例：山田 太郎">
+      </div>
+      <div class="error-msg" id="r-group-err" style="display:none;margin-top:8px">⚠ 団体を選択または入力してください</div>
+    </div>
+
+    <!-- 市内・市外 -->
+    <div class="section-card">
+      <div class="section-card-title">🗺️ 料金区分</div>
+      <div class="form-row">
+        <div class="form-label">市内 / 市外</div>
+        <div class="fee-toggle-group">
+          <button class="fee-toggle active" onclick="setToggle(this,'area','市内')">市内</button>
+          <button class="fee-toggle" onclick="setToggle(this,'area','市外')">市外</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-label">減免区分</div>
+        <div class="menjyo-wrap">
+          <button class="menjyo-btn active" onclick="setMenjyo(this,100)">減免なし</button>
+          <button class="menjyo-btn" onclick="setMenjyo(this,50)">半額減免</button>
+          <button class="menjyo-btn" onclick="setMenjyo(this,0)">全額免除</button>
+          <button class="menjyo-btn" onclick="setMenjyo(this,-1)">その他</button>
+        </div>
+        <div class="menjyo-input-wrap" id="menjyo-input-wrap">
+          <div class="form-label" style="margin-top:8px">減免率（%）</div>
+          <input class="big-input" type="number" id="menjyo-rate" placeholder="例：30" min="0" max="100" oninput="calcTotal()">
+        </div>
+      </div>
+    </div>
+
+    <!-- 合計表示 -->
+    <div class="fee-total-display">
+      <div class="fee-total-label">合計金額（税込）</div>
+      <div class="fee-total-value" id="fee-total-display">0 円</div>
+    </div>
+
+    <!-- 明細リスト -->
+    <div class="section-card">
+      <div class="section-card-title">📋 利用明細</div>
+      <div class="meisai-list" id="meisai-list"></div>
+      <button class="add-meisai-btn" onclick="addMeisai()">＋ 明細を追加する</button>
+    </div>
+
+    <!-- 支払方法 -->
+    <div class="section-card">
+      <div class="section-card-title">💳 支払方法</div>
+      <div class="radio-group" id="r-payment-group">
+        <button class="radio-btn active" onclick="setPayment(this,'現金')">現金</button>
+        <button class="radio-btn" onclick="setPayment(this,'振込')">振込</button>
+        <button class="radio-btn" onclick="setPayment(this,'無料')">無料</button>
+      </div>
+    </div>
+
+    <button class="save-btn" onclick="saveReceipt()">💾　保存する</button>
+  </div>
+</div>
+
+<!-- =============================== 支出入力 =============================== -->
+<div id="screen-expense" class="screen sub-screen">
+  <div class="form-wrap">
+    <div class="form-row">
+      <div class="form-label">日付 <span class="required">必須</span></div>
+      <input class="big-input" type="date" id="e-date">
+    </div>
+    <div class="form-row">
+      <div class="form-label">内容 <span class="required">必須</span></div>
+      <input class="big-input" type="text" id="e-content" placeholder="例：消耗品費">
+    </div>
+    <div class="form-row">
+      <div class="form-label">金額 <span class="required">必須</span></div>
+      <div class="input-wrap">
+        <input class="big-input" type="number" id="e-amount" placeholder="例：5000">
+        <span class="input-suffix">円</span>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-label">支払先</div>
+      <input class="big-input" type="text" id="e-vendor" placeholder="例：○○商店">
+    </div>
+    <div style="height:16px"></div>
+    <button class="save-btn" onclick="saveExpense()">💾　保存する</button>
+  </div>
+</div>
+
+<!-- =============================== 日報 =============================== -->
+<div id="screen-daily" class="screen sub-screen">
+  <div class="form-wrap">
+    <div class="form-row">
+      <div class="form-label">日付</div>
+      <input class="big-input" type="date" id="d-date" onchange="renderDaily()">
+    </div>
+    <div class="auto-block">
+      <div class="auto-block-title">📋 自動集計（受付データより）</div>
+      <div class="auto-text" id="daily-auto-text"></div>
+      <div id="daily-table-wrap"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-label">特記事項</div>
+      <textarea class="big-textarea" id="d-special" rows="3" placeholder="特記事項があれば入力..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-label">忘れ物</div>
+      <textarea class="big-textarea" id="d-lost" rows="2" placeholder="忘れ物の内容..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-label">故障・不具合</div>
+      <textarea class="big-textarea" id="d-broken" rows="2" placeholder="故障・不具合の内容..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-label">清掃内容</div>
+      <textarea class="big-textarea" id="d-cleaning" rows="2" placeholder="清掃した場所・内容..."></textarea>
+    </div>
+    <div style="height:16px"></div>
+    <button class="save-btn" onclick="saveDaily()">💾　日報を保存する</button>
+  </div>
+</div>
+
+<!-- =============================== 月報 =============================== -->
+<div id="screen-monthly" class="screen sub-screen">
+  <div class="form-wrap">
+    <div class="form-row">
+      <div class="form-label">対象月</div>
+      <input class="big-input" type="month" id="m-month" onchange="renderMonthly()">
+    </div>
+    <div class="month-summary-grid" id="month-cards"></div>
+    <div class="section-title">利用区分別集計</div>
+    <div id="month-type-table"></div>
+    <div class="section-title">利用団体別集計（上位10件）</div>
+    <div id="month-group-table"></div>
+  </div>
+</div>
+
+<!-- =============================== 現金出納帳 =============================== -->
+<div id="screen-cashbook" class="screen sub-screen">
+  <div class="form-wrap">
+    <div class="form-row">
+      <div class="form-label">対象月</div>
+      <input class="big-input" type="month" id="cb-month" onchange="renderCashbook()">
+    </div>
+    <div class="cash-summary" id="cash-summary"></div>
+    <div style="overflow-x:auto">
+      <table class="report-table">
+        <thead><tr><th>日付</th><th>内容</th><th>収入</th><th>支出</th><th>残高</th></tr></thead>
+        <tbody id="cashbook-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- =============================== 書類出力 =============================== -->
+<div id="screen-export" class="screen sub-screen">
+  <div class="form-wrap">
+    <div class="date-row">
+      <div class="form-row">
+        <div class="form-label">対象日（日報用）</div>
+        <input class="big-input" type="date" id="ex-date">
+      </div>
+      <div class="form-row">
+        <div class="form-label">対象月（月次書類用）</div>
+        <input class="big-input" type="month" id="ex-month">
+      </div>
+    </div>
+    <div class="export-grid">
+      <button class="export-btn" onclick="exportDoc('日報PDF')"><span class="export-btn-icon">📄</span><span class="export-btn-label">日報（PDF）</span><span class="export-btn-desc">選択した日の日報</span></button>
+      <button class="export-btn" onclick="exportDoc('月報PDF')"><span class="export-btn-icon">📊</span><span class="export-btn-label">月報（PDF）</span><span class="export-btn-desc">選択した月の月報</span></button>
+      <button class="export-btn" onclick="exportDoc('現金出納帳PDF')"><span class="export-btn-icon">🗂️</span><span class="export-btn-label">現金出納帳（PDF）</span><span class="export-btn-desc">選択した月の収支</span></button>
+      <button class="export-btn" onclick="exportDoc('利用実績PDF')"><span class="export-btn-icon">📋</span><span class="export-btn-label">利用実績一覧（PDF）</span><span class="export-btn-desc">選択した月の実績</span></button>
+      <button class="export-btn" onclick="exportDoc('月報Excel')"><span class="export-btn-icon">📗</span><span class="export-btn-label">月報（Excel）</span><span class="export-btn-desc">Excel形式で出力</span></button>
+      <button class="export-btn" onclick="exportDoc('現金出納帳Excel')"><span class="export-btn-icon">📗</span><span class="export-btn-label">現金出納帳（Excel）</span><span class="export-btn-desc">Excel形式で出力</span></button>
+    </div>
+    <div class="export-note">※ 実際の運用では、データと連携してPDF・Excelファイルを自動生成します。<br>　 市役所提出書類のフォーマットに合わせてカスタマイズ可能です。</div>
+  </div>
+</div>
+
+<!-- =============================== マスタ管理 =============================== -->
+<div id="screen-master" class="screen sub-screen">
+  <div class="form-wrap">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchMasterTab('group',this)">👥 団体マスタ</button>
+      <button class="tab-btn" onclick="switchMasterTab('fee',this)">💰 料金マスタ</button>
+    </div>
+
+    <!-- 団体マスタ -->
+    <div id="master-group-tab">
+      <div class="master-list" id="group-master-list"></div>
+      <button class="add-master-btn" onclick="openGroupModal()">＋ 団体を追加する</button>
+    </div>
+
+    <!-- 料金マスタ -->
+    <div id="master-fee-tab" style="display:none">
+      <div class="master-list" id="fee-master-list"></div>
+      <button class="add-master-btn" onclick="openFeeModal()">＋ 料金を追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 団体追加モーダル ===== -->
+<div class="modal-overlay" id="group-modal">
+  <div class="modal-box">
+    <div class="modal-title">👥 団体マスタ登録</div>
+    <div class="form-row">
+      <div class="form-label">団体名 <span class="required">必須</span></div>
+      <input class="big-input" type="text" id="gm-name" placeholder="例：○○スポーツクラブ">
+    </div>
+    <div class="form-row">
+      <div class="form-label">種目</div>
+      <input class="big-input" type="text" id="gm-sport" placeholder="例：バスケットボール">
+    </div>
+    <div class="form-row">
+      <div class="form-label">主な利用場所</div>
+      <select class="big-select" id="gm-location">
+        <option value="">選択してください</option>
+        <option>メインアリーナ</option><option>サブアリーナ</option>
+        <option>会議室A</option><option>会議室B</option>
+        <option>研修室</option><option>多目的室</option><option>トレーニング室</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-label">代表者名</div>
+      <input class="big-input" type="text" id="gm-rep" placeholder="例：山田 太郎">
+    </div>
+    <div class="form-row">
+      <div class="form-label">通常利用時間</div>
+      <input class="big-input" type="text" id="gm-time" placeholder="例：毎週土曜 9:00〜12:00">
+    </div>
+    <div class="form-row">
+      <div class="form-label">料金区分</div>
+      <select class="big-select" id="gm-feetype">
+        <option value="">選択してください</option>
+        <option>市内・一般</option><option>市内・減免</option>
+        <option>市外・一般</option><option>無料</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-label">メモ</div>
+      <textarea class="big-textarea" id="gm-memo" rows="2" placeholder="備考など..."></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('group-modal')">キャンセル</button>
+      <button class="modal-save" onclick="saveGroupMaster()">💾 保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 料金追加モーダル ===== -->
+<div class="modal-overlay" id="fee-modal">
+  <div class="modal-box">
+    <div class="modal-title">💰 料金マスタ登録</div>
+    <div class="form-row">
+      <div class="form-label">施設カテゴリ <span class="required">必須</span></div>
+      <input class="big-input" type="text" id="fm-category" placeholder="例：体育館">
+    </div>
+    <div class="form-row">
+      <div class="form-label">利用場所名 <span class="required">必須</span></div>
+      <input class="big-input" type="text" id="fm-place" placeholder="例：メインアリーナ全面">
+    </div>
+    <div class="form-row">
+      <div class="form-label">面数区分</div>
+      <input class="big-input" type="text" id="fm-men" placeholder="例：全面・半面・1/4面">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-row">
+        <div class="form-label">市内料金（円/h）</div>
+        <input class="big-input" type="number" id="fm-naifee" placeholder="例：660">
+      </div>
+      <div class="form-row">
+        <div class="form-label">市外料金（円/h）</div>
+        <input class="big-input" type="number" id="fm-gaifee" placeholder="例：1320">
+      </div>
+      <div class="form-row">
+        <div class="form-label">照明料金（円/h）</div>
+        <input class="big-input" type="number" id="fm-lightfee" placeholder="例：2620">
+      </div>
+      <div class="form-row">
+        <div class="form-label">夜間料金（円/h）</div>
+        <input class="big-input" type="number" id="fm-nightfee" placeholder="例：1200">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-label">備考</div>
+      <input class="big-input" type="text" id="fm-note" placeholder="備考など">
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal('fee-modal')">キャンセル</button>
+      <button class="modal-save" onclick="saveFeeMaster()">💾 保存する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ DATA ============
+const KEYS = { receipts:'fms_receipts', expenses:'fms_expenses', notes:'fms_notes', groups:'fms_groups', fees:'fms_fees', recentGroups:'fms_recent_groups' };
+const load = k => { try { return JSON.parse(localStorage.getItem(k)) || []; } catch { return []; } };
+const save = (k,d) => localStorage.setItem(k, JSON.stringify(d));
+
+let receipts     = load(KEYS.receipts);
+let expenses     = load(KEYS.expenses);
+let notes        = load(KEYS.notes);
+let groupMasters = load(KEYS.groups);
+let feeMasters   = load(KEYS.fees);
+let recentGroups = load(KEYS.recentGroups);
+
+// 初期データ（なければ）
+if (!groupMasters.length) {
+  groupMasters = [
+    {id:1, name:'○○スポーツクラブ', sport:'バスケットボール', location:'メインアリーナ', rep:'山田 太郎', time:'毎週土曜 9:00〜12:00', feetype:'市内・一般', memo:''},
+    {id:2, name:'△△バレーボール協会', sport:'バレーボール', location:'メインアリーナ', rep:'鈴木 花子', time:'毎週日曜 13:00〜17:00', feetype:'市内・一般', memo:''},
+    {id:3, name:'□□サッカー少年団', sport:'サッカー', location:'多目的室', rep:'田中 健一', time:'毎週水曜 18:00〜20:00', feetype:'市内・減免', memo:''},
+  ];
+  save(KEYS.groups, groupMasters);
+}
+if (!feeMasters.length) {
+  feeMasters = [
+    {id:1, category:'体育館', place:'メインアリーナ全面', men:'全面', naifee:1320, gaifee:2640, lightfee:2620, nightfee:1500, note:''},
+    {id:2, category:'体育館', place:'メインアリーナ', men:'半面', naifee:660, gaifee:1320, lightfee:1310, nightfee:750, note:''},
+    {id:3, category:'体育館', place:'サブアリーナ', men:'全面', naifee:880, gaifee:1760, lightfee:2000, nightfee:1000, note:''},
+    {id:4, category:'会議室', place:'会議室A', men:'全室', naifee:300, gaifee:600, lightfee:0, nightfee:400, note:''},
+  ];
+  save(KEYS.fees, feeMasters);
+}
+
+const todayStr   = () => new Date().toISOString().slice(0,10);
+const thisMonth  = () => new Date().toISOString().slice(0,7);
+const fmt        = n  => Number(n||0).toLocaleString('ja-JP') + '円';
+const fmtD       = d  => d ? d.replace(/-/g,'/') : '';
+
+// ============ NAVIGATION ============
+function goScreen(id, title) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  document.getElementById('header').classList.add('show');
+  document.getElementById('header-title').textContent = title || '';
+  if (id==='receipt') initReceipt();
+  if (id==='expense') initExpense();
+  if (id==='daily')   initDaily();
+  if (id==='monthly') initMonthly();
+  if (id==='cashbook') initCashbook();
+  if (id==='export')  initExport();
+  if (id==='master')  initMaster();
+  window.scrollTo(0,0);
+}
+function goHome() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-home').classList.add('active');
+  document.getElementById('header').classList.remove('show');
+  renderHome();
+}
+
+// ============ HOME ============
+function renderHome() {
+  const td = todayStr();
+  const tr = receipts.filter(r => r.date===td);
+  document.getElementById('sum-count').textContent  = tr.length + '件';
+  document.getElementById('sum-people').textContent = tr.reduce((s,r)=>s+Number(r.people||0),0) + '名';
+  document.getElementById('sum-income').textContent = fmt(tr.reduce((s,r)=>s+Number(r.totalFee||0),0));
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+}
+
+// ============ RECEIPT STATE ============
+let selectedGroupId   = null;
+let selectedArea      = '市内';
+let selectedPayment   = '現金';
+let menjyoRate        = 100;
+let meisaiList        = [];
+let meisaiCounter     = 0;
+
+function initReceipt() {
+  document.getElementById('r-date').value    = todayStr();
+  document.getElementById('r-start').value  = '';
+  document.getElementById('r-end').value    = '';
+  document.getElementById('r-people').value = '';
+  document.getElementById('r-people-err').style.display = 'none';
+  document.getElementById('r-group-err').style.display  = 'none';
+  document.getElementById('group-search').value = '';
+  selectedGroupId = null; selectedArea = '市内'; selectedPayment = '現金'; menjyoRate = 100;
+  meisaiList = []; meisaiCounter = 0;
+  document.querySelectorAll('.fee-toggle').forEach(b => b.classList.toggle('active', b.textContent==='市内'));
+  document.querySelectorAll('.menjyo-btn').forEach(b => b.classList.toggle('active', b.textContent==='減免なし'));
+  document.getElementById('menjyo-input-wrap').classList.remove('show');
+  document.getElementById('other-input-wrap').classList.remove('show');
+  document.getElementById('r-payment-group').querySelectorAll('.radio-btn').forEach(b => b.classList.toggle('active', b.textContent==='現金'));
+  renderGroupList();
+  renderMeisai();
+  calcTotal();
+}
+
+// ============ GROUP SELECT ============
+function renderGroupList(filter='') {
+  const list = document.getElementById('group-list');
+  const recent = recentGroups.slice(0,5);
+  const f = filter.trim().toLowerCase();
+
+  let items = groupMasters.filter(g => !f || g.name.toLowerCase().includes(f) || (g.sport||'').toLowerCase().includes(f));
+  // 最近使ったを上に
+  items.sort((a,b) => {
+    const ai = recent.indexOf(a.id), bi = recent.indexOf(b.id);
+    if (ai>=0 && bi>=0) return ai-bi;
+    if (ai>=0) return -1;
+    if (bi>=0) return 1;
+    return 0;
+  });
+
+  let html = items.map(g => {
+    const isRecent = recent.includes(g.id);
+    const sel = selectedGroupId===g.id ? ' selected' : '';
+    return `<button class="group-btn${sel}" onclick="selectGroup(${g.id})">
+      <div class="group-btn-left">
+        <div class="group-btn-name">${g.name}</div>
+        <div class="group-btn-sub">${g.sport||''}　${g.location||''}　${g.rep||''}</div>
+      </div>
+      ${isRecent ? '<span class="group-btn-recent">最近使用</span>' : ''}
+    </button>`;
+  }).join('');
+
+  html += `<button class="group-btn${selectedGroupId==='other'?' selected':''}" onclick="selectGroup('other')">
+    <div class="group-btn-left">
+      <div class="group-btn-name">その他（手入力）</div>
+      <div class="group-btn-sub">一覧にない団体はこちら</div>
+    </div>
+  </button>`;
+
+  list.innerHTML = html;
+}
+
+function filterGroups() {
+  renderGroupList(document.getElementById('group-search').value);
+}
+
+function selectGroup(id) {
+  selectedGroupId = id;
+  document.getElementById('other-input-wrap').classList.toggle('show', id==='other');
+  document.getElementById('r-group-err').style.display = 'none';
+  if (id !== 'other') {
+    const g = groupMasters.find(x=>x.id===id);
+    if (g) {
+      if (g.feetype && g.feetype.includes('市外')) { selectedArea='市外'; }
+      else { selectedArea='市内'; }
+      document.querySelectorAll('.fee-toggle').forEach(b => b.classList.toggle('active', b.textContent===selectedArea));
+    }
+  }
+  renderGroupList(document.getElementById('group-search').value);
+  calcTotal();
+}
+
+// ============ AREA / MENJYO TOGGLES ============
+function setToggle(btn, type, val) {
+  if (type==='area') {
+    selectedArea = val;
+    document.querySelectorAll('.fee-toggle').forEach(b => b.classList.toggle('active', b.textContent===val));
+  }
+  calcTotal();
+}
+function setMenjyo(btn, rate) {
+  menjyoRate = rate;
+  document.querySelectorAll('.menjyo-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('menjyo-input-wrap').classList.toggle('show', rate===-1);
+  calcTotal();
+}
+function setPayment(btn, val) {
+  selectedPayment = val;
+  document.querySelectorAll('#r-payment-group .radio-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ============ MEISAI ============
+function addMeisai() {
+  meisaiCounter++;
+  const id = meisaiCounter;
+  const feeOptions = feeMasters.map(f=>`<option value="${f.id}">${f.place}（${f.men}）</option>`).join('');
+  meisaiList.push({ id, placeId:'', rikkuType:'日中', hours:1, subtotal:0 });
+  renderMeisai();
+  calcTotal();
+}
+
+function renderMeisai() {
+  const wrap = document.getElementById('meisai-list');
+  if (!meisaiList.length) {
+    wrap.innerHTML = '<p style="color:#94a3b8;font-size:16px;text-align:center;padding:12px">「明細を追加」を押して利用内容を登録してください</p>';
+    return;
+  }
+  wrap.innerHTML = meisaiList.map((m,i) => {
+    const feeOptions = feeMasters.map(f=>`<option value="${f.id}" ${m.placeId==f.id?'selected':''}>${f.place}（${f.men}）</option>`).join('');
+    return `<div class="meisai-card" id="meisai-${m.id}">
+      <div class="meisai-header">
+        <span class="meisai-num">明細 ${i+1}</span>
+        <span class="meisai-subtotal" id="sub-${m.id}">${fmt(m.subtotal)}</span>
+        <button class="meisai-del" onclick="delMeisai(${m.id})">削除</button>
+      </div>
+      <div class="meisai-grid">
+        <div class="meisai-field" style="grid-column:span 2">
+          <label>利用場所・面数</label>
+          <select onchange="updateMeisai(${m.id},'placeId',this.value)">
+            <option value="">選択してください</option>${feeOptions}
+          </select>
+        </div>
+        <div class="meisai-field">
+          <label>料金区分</label>
+          <select onchange="updateMeisai(${m.id},'rikkuType',this.value)">
+            <option ${m.rikkuType==='日中'?'selected':''}>日中</option>
+            <option ${m.rikkuType==='照明利用'?'selected':''}>照明利用</option>
+            <option ${m.rikkuType==='夜間'?'selected':''}>夜間</option>
+            <option ${m.rikkuType==='その他'?'selected':''}>その他</option>
+          </select>
+        </div>
+        <div class="meisai-field">
+          <label>利用時間（時間）</label>
+          <input type="number" step="0.5" min="0.5" value="${m.hours}" onchange="updateMeisai(${m.id},'hours',this.value)">
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateMeisai(id, key, val) {
+  const m = meisaiList.find(x=>x.id===id);
+  if (!m) return;
+  m[key] = key==='hours' ? parseFloat(val)||1 : val;
+  calcMeisaiSub(m);
+  document.getElementById('sub-'+id).textContent = fmt(m.subtotal);
+  calcTotal();
+}
+
+function calcMeisaiSub(m) {
+  const fee = feeMasters.find(f=>String(f.id)===String(m.placeId));
+  if (!fee) { m.subtotal=0; return; }
+  let unitFee = 0;
+  if (m.rikkuType==='日中')    unitFee = selectedArea==='市内' ? fee.naifee : fee.gaifee;
+  if (m.rikkuType==='照明利用') unitFee = Number(fee.lightfee||0) + (selectedArea==='市内' ? fee.naifee : fee.gaifee);
+  if (m.rikkuType==='夜間')    unitFee = selectedArea==='市内' ? Number(fee.nightfee||fee.naifee) : Number(fee.nightfee||fee.gaifee);
+  if (m.rikkuType==='その他')  unitFee = selectedArea==='市内' ? fee.naifee : fee.gaifee;
+  m.subtotal = Math.round(unitFee * m.hours);
+}
+
+function delMeisai(id) {
+  meisaiList = meisaiList.filter(m=>m.id!==id);
+  renderMeisai();
+  calcTotal();
+}
+
+function calcTotal() {
+  meisaiList.forEach(m => calcMeisaiSub(m));
+  let sub = meisaiList.reduce((s,m)=>s+m.subtotal, 0);
+  let rate = menjyoRate;
+  if (rate===-1) { rate = Number(document.getElementById('menjyo-rate').value) || 100; }
+  const total = Math.round(sub * rate / 100);
+  document.getElementById('fee-total-display').textContent = total.toLocaleString('ja-JP') + ' 円';
+  // update subtotals display
+  meisaiList.forEach(m => {
+    const el = document.getElementById('sub-'+m.id);
+    if (el) el.textContent = fmt(m.subtotal);
+  });
+}
+
+// ============ SAVE RECEIPT ============
+function saveReceipt() {
+  let ok = true;
+  if (!document.getElementById('r-people').value) {
+    document.getElementById('r-people-err').style.display='block'; ok=false;
+  } else document.getElementById('r-people-err').style.display='none';
+  if (!selectedGroupId) {
+    document.getElementById('r-group-err').style.display='block'; ok=false;
+  } else document.getElementById('r-group-err').style.display='none';
+  if (!ok) return;
+
+  let groupName='', repName='';
+  if (selectedGroupId==='other') {
+    groupName = document.getElementById('r-group-other').value || 'その他';
+    repName   = document.getElementById('r-rep-other').value;
+  } else {
+    const g = groupMasters.find(x=>x.id===selectedGroupId);
+    groupName = g ? g.name : '';
+    repName   = g ? g.rep : '';
+    // 最近使用に追加
+    recentGroups = [selectedGroupId, ...recentGroups.filter(x=>x!==selectedGroupId)].slice(0,10);
+    save(KEYS.recentGroups, recentGroups);
+  }
+
+  let rate = menjyoRate===-1 ? (Number(document.getElementById('menjyo-rate').value)||100) : menjyoRate;
+  let subTotal = meisaiList.reduce((s,m)=>s+m.subtotal,0);
+  let totalFee = Math.round(subTotal * rate / 100);
+
+  receipts.push({
+    id: Date.now(), date: document.getElementById('r-date').value,
+    startTime: document.getElementById('r-start').value, endTime: document.getElementById('r-end').value,
+    people: document.getElementById('r-people').value,
+    groupName, repName, area: selectedArea, menjyoRate: rate,
+    payment: selectedPayment, meisai: meisaiList, totalFee,
+    usageType: meisaiList.length ? meisaiList[0].rikkuType : '一般利用',
+    location: meisaiList.length ? (feeMasters.find(f=>String(f.id)===String(meisaiList[0].placeId))||{}).place||'' : '',
+    fee: totalFee,
+  });
+  save(KEYS.receipts, receipts);
+  showToast('受付情報を保存しました ✓');
+  goHome();
+}
+
+// ============ EXPENSE ============
+function initExpense() {
+  document.getElementById('e-date').value    = todayStr();
+  document.getElementById('e-content').value = '';
+  document.getElementById('e-amount').value  = '';
+  document.getElementById('e-vendor').value  = '';
+}
+function saveExpense() {
+  const content = document.getElementById('e-content').value.trim();
+  const amount  = document.getElementById('e-amount').value;
+  if (!content||!amount) { showToast('内容と金額は必須です','error'); return; }
+  expenses.push({ id:Date.now(), date:document.getElementById('e-date').value, content, amount, vendor:document.getElementById('e-vendor').value });
+  save(KEYS.expenses, expenses);
+  showToast('支出情報を保存しました ✓');
+  goHome();
+}
+
+// ============ DAILY ============
+function initDaily() {
+  document.getElementById('d-date').value = todayStr();
+  loadNoteToForm(todayStr()); renderDaily();
+}
+function loadNoteToForm(d) {
+  const n = notes.find(x=>x.date===d)||{};
+  ['special','lost','broken','cleaning'].forEach(k => document.getElementById('d-'+k).value = n[k]||'');
+}
+function renderDaily() {
+  const d = document.getElementById('d-date').value;
+  loadNoteToForm(d);
+  const dr = receipts.filter(r=>r.date===d);
+  const totalP = dr.reduce((s,r)=>s+Number(r.people||0),0);
+  const totalI = dr.reduce((s,r)=>s+Number(r.totalFee||r.fee||0),0);
+  document.getElementById('daily-auto-text').innerHTML =
+    `本日は団体利用 <strong>${dr.length}件</strong>、利用人数 <strong>${totalP}名</strong>、利用料収入 <strong>${fmt(totalI)}</strong> でした。`;
+  const wrap = document.getElementById('daily-table-wrap');
+  wrap.innerHTML = dr.length ? `<table class="mini-table"><thead><tr><th>団体名</th><th>利用場所</th><th>人数</th><th>金額</th></tr></thead><tbody>
+    ${dr.map(r=>`<tr><td>${r.groupName}</td><td>${r.location||''}</td><td>${r.people}名</td><td>${fmt(r.totalFee||r.fee)}</td></tr>`).join('')}
+  </tbody></table>` : '<p style="color:#888;font-size:16px;margin-top:8px">この日の受付データはありません</p>';
+}
+function saveDaily() {
+  const d = document.getElementById('d-date').value;
+  notes = [...notes.filter(n=>n.date!==d), { date:d, special:document.getElementById('d-special').value, lost:document.getElementById('d-lost').value, broken:document.getElementById('d-broken').value, cleaning:document.getElementById('d-cleaning').value }];
+  save(KEYS.notes, notes);
+  showToast('日報を保存しました ✓');
+  goHome();
+}
+
+// ============ MONTHLY ============
+const USAGE_TYPES = ['一般利用','団体利用','学校利用','行政利用','大会・イベント','練習利用','日中','照明利用','夜間'];
+function initMonthly() { document.getElementById('m-month').value = thisMonth(); renderMonthly(); }
+function renderMonthly() {
+  const m = document.getElementById('m-month').value;
+  const mr = receipts.filter(r=>r.date.startsWith(m));
+  const me = expenses.filter(e=>e.date.startsWith(m));
+  const totalP = mr.reduce((s,r)=>s+Number(r.people||0),0);
+  const totalI = mr.reduce((s,r)=>s+Number(r.totalFee||r.fee||0),0);
+  const totalE = me.reduce((s,e)=>s+Number(e.amount||0),0);
+  const diff = totalI-totalE;
+  const cards = [
+    {icon:'👥',label:'利用人数',value:totalP.toLocaleString()+'名',color:'#1a6fbf'},
+    {icon:'📋',label:'利用件数',value:mr.length+'件',color:'#1a7a4a'},
+    {icon:'💰',label:'収入合計',value:fmt(totalI),color:'#b45309'},
+    {icon:'💸',label:'支出合計',value:fmt(totalE),color:'#7b3fa0'},
+    {icon:'📈',label:'収支差額',value:fmt(diff),color:diff>=0?'#0f766e':'#c0392b'},
+  ];
+  document.getElementById('month-cards').innerHTML = cards.map(c=>`
+    <div class="month-card" style="border-left-color:${c.color}">
+      <span class="month-card-icon">${c.icon}</span>
+      <div><div class="month-card-value" style="color:${c.color}">${c.value}</div><div class="month-card-label">${c.label}</div></div>
+    </div>`).join('');
+
+  const byType={};
+  USAGE_TYPES.forEach(t=>{byType[t]={count:0,people:0,income:0};});
+  mr.forEach(r=>{ if(byType[r.usageType]){byType[r.usageType].count++;byType[r.usageType].people+=Number(r.people||0);byType[r.usageType].income+=Number(r.totalFee||r.fee||0);} });
+  const typeRows = USAGE_TYPES.filter(t=>byType[t].count>0).map(t=>`<tr><td>${t}</td><td>${byType[t].count}件</td><td>${byType[t].people}名</td><td>${fmt(byType[t].income)}</td></tr>`).join('');
+  document.getElementById('month-type-table').innerHTML = `<table class="report-table"><thead><tr><th>区分</th><th>件数</th><th>人数</th><th>収入</th></tr></thead><tbody>${typeRows||'<tr><td colspan="4" style="text-align:center;color:#888">データがありません</td></tr>'}</tbody></table>`;
+
+  const byGroup={};
+  mr.forEach(r=>{if(!byGroup[r.groupName])byGroup[r.groupName]={count:0,people:0,income:0};byGroup[r.groupName].count++;byGroup[r.groupName].people+=Number(r.people||0);byGroup[r.groupName].income+=Number(r.totalFee||r.fee||0);});
+  const groupRows = Object.entries(byGroup).sort((a,b)=>b[1].count-a[1].count).slice(0,10).map(([n,d])=>`<tr><td>${n}</td><td>${d.count}件</td><td>${d.people}名</td><td>${fmt(d.income)}</td></tr>`).join('');
+  document.getElementById('month-group-table').innerHTML = `<table class="report-table"><thead><tr><th>団体名</th><th>件数</th><th>人数</th><th>収入</th></tr></thead><tbody>${groupRows||'<tr><td colspan="4" style="text-align:center;color:#888">データがありません</td></tr>'}</tbody></table>`;
+}
+
+// ============ CASHBOOK ============
+function initCashbook() { document.getElementById('cb-month').value = thisMonth(); renderCashbook(); }
+function renderCashbook() {
+  const m = document.getElementById('cb-month').value;
+  const mr = receipts.filter(r=>r.date.startsWith(m));
+  const me = expenses.filter(e=>e.date.startsWith(m));
+  const entries = [
+    ...mr.map(r=>({date:r.date,content:`${r.groupName}`,income:Number(r.totalFee||r.fee||0),expense:0,type:'income'})),
+    ...me.map(e=>({date:e.date,content:`${e.content}（${e.vendor||''}）`,income:0,expense:Number(e.amount||0),type:'expense'})),
+  ].sort((a,b)=>a.date.localeCompare(b.date));
+  let bal=0;
+  const rows = entries.map(e=>{ bal+=e.income-e.expense; return {...e,balance:bal}; });
+  const totalI=rows.reduce((s,r)=>s+r.income,0), totalE=rows.reduce((s,r)=>s+r.expense,0);
+  document.getElementById('cash-summary').innerHTML = `<span>収入合計: <span class="income-text">${fmt(totalI)}</span></span><span>支出合計: <span class="expense-text">${fmt(totalE)}</span></span><span>残高: <span class="balance-text">${fmt(totalI-totalE)}</span></span>`;
+  document.getElementById('cashbook-body').innerHTML = rows.length ? rows.map(r=>`<tr class="${r.type==='expense'?'row-expense':''}"><td>${fmtD(r.date)}</td><td>${r.content}</td><td style="color:#1a7a4a;text-align:right">${r.income>0?fmt(r.income):''}</td><td style="color:#c0392b;text-align:right">${r.expense>0?fmt(r.expense):''}</td><td style="text-align:right;font-weight:bold">${fmt(r.balance)}</td></tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:#888;padding:20px">データがありません</td></tr>';
+}
+
+// ============ EXPORT ============
+function initExport() { document.getElementById('ex-date').value=todayStr(); document.getElementById('ex-month').value=thisMonth(); }
+function exportDoc(type) { showToast(type+' を出力しました（デモ）'); }
+
+// ============ MASTER ============
+function initMaster() { renderGroupMaster(); renderFeeMaster(); }
+function switchMasterTab(tab, btn) {
+  document.getElementById('master-group-tab').style.display = tab==='group' ? 'block' : 'none';
+  document.getElementById('master-fee-tab').style.display   = tab==='fee'   ? 'block' : 'none';
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function renderGroupMaster() {
+  document.getElementById('group-master-list').innerHTML = groupMasters.map(g=>`
+    <div class="master-item">
+      <div class="master-item-info">
+        <div class="master-item-name">${g.name}</div>
+        <div class="master-item-sub">${g.sport||''}　代表：${g.rep||''}　${g.feetype||''}</div>
+      </div>
+      <button class="master-del-btn" onclick="delGroup(${g.id})">削除</button>
+    </div>`).join('') || '<p style="color:#888">登録済みの団体がありません</p>';
+}
+function renderFeeMaster() {
+  document.getElementById('fee-master-list').innerHTML = feeMasters.map(f=>`
+    <div class="master-item">
+      <div class="master-item-info">
+        <div class="master-item-name">${f.place}（${f.men}）</div>
+        <div class="master-item-sub">市内 ${fmt(f.naifee)}/h　市外 ${fmt(f.gaifee)}/h　照明 ${fmt(f.lightfee)}/h</div>
+      </div>
+      <button class="master-del-btn" onclick="delFee(${f.id})">削除</button>
+    </div>`).join('') || '<p style="color:#888">登録済みの料金がありません</p>';
+}
+function openGroupModal() { document.getElementById('group-modal').classList.add('show'); }
+function openFeeModal()   { document.getElementById('fee-modal').classList.add('show'); }
+function closeModal(id)   { document.getElementById(id).classList.remove('show'); }
+function saveGroupMaster() {
+  const name = document.getElementById('gm-name').value.trim();
+  if (!name) { showToast('団体名は必須です','error'); return; }
+  const newG = { id:Date.now(), name, sport:document.getElementById('gm-sport').value, location:document.getElementById('gm-location').value, rep:document.getElementById('gm-rep').value, time:document.getElementById('gm-time').value, feetype:document.getElementById('gm-feetype').value, memo:document.getElementById('gm-memo').value };
+  groupMasters.push(newG); save(KEYS.groups, groupMasters);
+  closeModal('group-modal'); renderGroupMaster();
+  ['gm-name','gm-sport','gm-rep','gm-time','gm-memo'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('gm-location').value=''; document.getElementById('gm-feetype').value='';
+  showToast('団体を登録しました ✓');
+}
+function saveFeeMaster() {
+  const category = document.getElementById('fm-category').value.trim();
+  const place    = document.getElementById('fm-place').value.trim();
+  if (!category||!place) { showToast('施設と利用場所は必須です','error'); return; }
+  feeMasters.push({ id:Date.now(), category, place, men:document.getElementById('fm-men').value, naifee:Number(document.getElementById('fm-naifee').value)||0, gaifee:Number(document.getElementById('fm-gaifee').value)||0, lightfee:Number(document.getElementById('fm-lightfee').value)||0, nightfee:Number(document.getElementById('fm-nightfee').value)||0, note:document.getElementById('fm-note').value });
+  save(KEYS.fees, feeMasters);
+  closeModal('fee-modal'); renderFeeMaster();
+  ['fm-category','fm-place','fm-men','fm-naifee','fm-gaifee','fm-lightfee','fm-nightfee','fm-note'].forEach(id=>document.getElementById(id).value='');
+  showToast('料金を登録しました ✓');
+}
+function delGroup(id) {
+  if (!confirm('この団体を削除しますか？')) return;
+  groupMasters = groupMasters.filter(g=>g.id!==id); save(KEYS.groups, groupMasters); renderGroupMaster();
+}
+function delFee(id) {
+  if (!confirm('この料金を削除しますか？')) return;
+  feeMasters = feeMasters.filter(f=>f.id!==id); save(KEYS.fees, feeMasters); renderFeeMaster();
+}
+
+// ============ TOAST ============
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.style.background=type==='error'?'#c0392b':'#1a7a4a'; t.style.display='block';
+  setTimeout(()=>{ t.style.display='none'; }, 3000);
+}
+
+// ============ INIT ============
+renderHome();
+</script>
+</body>
+</html>
